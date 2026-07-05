@@ -1,36 +1,125 @@
 package Controller.Dai;
 
-import Dao.HocSinhDAO;
+import Api.HocSinhApi;
 import Model.Auth;
 import Model.HocSinh;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import java.util.ArrayList;
 import java.util.List;
 
 public class HocSinhController {
 
-    private HocSinhDAO dao = new HocSinhDAO();
+    private HocSinhApi api = new HocSinhApi();
 
-    //sửa ngày 09/04/2026
+    // Load dữ liệu lên bảng
     public void loadTable(DefaultTableModel model) {
+
         model.setRowCount(0);
+
         List<HocSinh> list;
 
-        // KIỂM TRA PHÂN QUYỀN
-        if (Model.Auth.isHocSinh()) {
-            // Chỉ lấy hồ sơ của chính học sinh đang đăng nhập
-            HocSinh hs = dao.getByMaHS(Model.Auth.maNguoiDung);
-            list = new java.util.ArrayList<>();
+        // Kiểm tra phân quyền
+        if (Auth.isHocSinh()) {
+
+            HocSinh hs = api.getHocSinh(Auth.maNguoiDung);
+
+            list = new ArrayList<>();
+
             if (hs != null) {
                 list.add(hs);
             }
+
         } else {
-            // Nếu là Admin/Giáo viên thì lấy tất cả
-            list = dao.getAll();
+
+            list = api.getAllHocSinh();
+
         }
 
-        // Đổ dữ liệu lên bảng
+        if (list == null) {
+            return;
+        }
+
+        for (HocSinh hs : list) {
+
+            model.addRow(new Object[]{
+                    hs.getMaHS(),
+                    hs.getHoTen(),
+                    hs.getNgaySinh(),
+                    hs.getGioiTinh(),
+                    hs.getDiaChi(),
+                    hs.getMaLop(),
+                    hs.getMaDT()
+            });
+
+        }
+
+    }
+
+    // Thêm
+    public boolean them(HocSinh hs) {
+        return api.insertHocSinh(hs);
+    }
+
+    // Sửa
+    public boolean sua(HocSinh hs) {
+        return api.updateHocSinh(hs);
+    }
+
+    // Xóa
+    public boolean xoa(String maHS) {
+        return api.deleteHocSinh(maHS);
+    }
+
+    // Load mã lớp
+    public void loadComboMaLop(JComboBox<String> cbo) {
+
+        cbo.removeAllItems();
+
+        List<String> list = api.getAllMaLop();
+
+        if (list == null) return;
+
+        for (String ma : list) {
+            cbo.addItem(ma);
+        }
+
+    }
+
+    // Load mã đối tượng
+    public void loadComboMaDT(JComboBox<String> cbo) {
+
+        cbo.removeAllItems();
+
+        List<String> list = api.getAllMaDT();
+
+        if (list == null) return;
+
+        for (String ma : list) {
+            cbo.addItem(ma);
+        }
+
+    }
+
+    // Tìm kiếm
+    public boolean timKiem(String keyword, DefaultTableModel model) {
+
+        model.setRowCount(0);
+
+        List<HocSinh> list = api.search(keyword);
+
+        // Server lỗi hoặc không kết nối được
+        if (list == null) {
+            throw new RuntimeException("Không thể kết nối tới Server.");
+        }
+
+        // Không có kết quả
+        if (list.isEmpty()) {
+            return false;
+        }
+
+        // Có dữ liệu
         for (HocSinh hs : list) {
             model.addRow(new Object[]{
                     hs.getMaHS(),
@@ -42,55 +131,15 @@ public class HocSinhController {
                     hs.getMaDT()
             });
         }
+
+        return true;
     }
 
-    public boolean them(HocSinh hs) {
-        return dao.insert(hs);
-    }
-
- 
-    public boolean sua(HocSinh hs) {
-        return dao.update(hs);
-    }
-
-
-    public boolean xoa(String maHS) {
-        return dao.delete(maHS);
-    }
-    
-    public void loadComboMaLop(JComboBox<String> cbo) {
-        cbo.removeAllItems();
-        for (String ma : dao.getAllMaLop()) {
-            cbo.addItem(ma);
-        }
-    }
-
-    public void loadComboMaDT(JComboBox<String> cbo) {
-        cbo.removeAllItems();
-        for (String ma : dao.getAllMaDT()) {
-            cbo.addItem(ma);
-        }
-    }
-
-
- 
-    public void timKiem(String keyword, DefaultTableModel model) {
-        model.setRowCount(0);
-        List<HocSinh> list = dao.search(keyword);
-
-        for (HocSinh hs : list) {
-            model.addRow(new Object[]{
-                hs.getMaHS(),
-                hs.getHoTen(),
-                hs.getNgaySinh(),
-                hs.getGioiTinh(),
-                hs.getDiaChi(),
-                hs.getMaLop(),
-                hs.getMaDT()
-            });
-        }
-    }
+    // Thông tin cá nhân
     public HocSinh getThongTinCaNhan() {
-        return dao.getByMaHS(Auth.maNguoiDung);
+
+        return api.getHocSinh(Auth.maNguoiDung);
+
     }
+
 }
