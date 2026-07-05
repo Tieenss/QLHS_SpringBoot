@@ -93,7 +93,7 @@ public class QuanLyDiemPanel extends JPanel {
         this.add(pnlNorth, BorderLayout.NORTH);
 
         // 2. PHẦN GIỮA (CENTER): Bảng Điểm
-        String[] columnNames = {"Mã HS", "Họ Tên", "Môn", "HK", "Điểm 15p", "1 Tiết", "Giữa Kỳ", "Cuối Kỳ", "Tổng Kết"};
+        String[] columnNames = {"Mã HS", "Họ Tên", "Mã Lớp", "Môn", "HK", "Điểm 15p", "1 Tiết", "Giữa Kỳ", "Cuối Kỳ", "Tổng Kết"};
         tableModel = new DefaultTableModel(columnNames, 0);
         tableDiem = new JTable(tableModel);
         tableDiem.setFont(new Font("Segoe UI", Font.PLAIN, 14));
@@ -110,7 +110,7 @@ public class QuanLyDiemPanel extends JPanel {
                 return c;
             }
         };
-        tableDiem.getColumnModel().getColumn(8).setCellRenderer(tongKetRenderer);
+        tableDiem.getColumnModel().getColumn(9).setCellRenderer(tongKetRenderer);
         
         this.add(new JScrollPane(tableDiem), BorderLayout.CENTER);
 
@@ -250,6 +250,7 @@ public class QuanLyDiemPanel extends JPanel {
             tableModel.addRow(new Object[]{
                 d.getMaHS(), 
                 d.getTenHS(), 
+                d.getMaLop(), 
                 d.getTenMH() != null ? d.getTenMH() : d.getMaMH(), 
                 d.getHocKy(),
                 d.getDiem15p(), 
@@ -267,10 +268,10 @@ public class QuanLyDiemPanel extends JPanel {
             txtMaHS.setText(tableModel.getValueAt(row, 0).toString());
             txtTenHS.setText(tableModel.getValueAt(row, 1).toString());
             
-            txtDiem15p.setText(tableModel.getValueAt(row, 4).toString());
-            txtDiem1Tiet.setText(tableModel.getValueAt(row, 5).toString());
-            txtDiemGiuaKy.setText(tableModel.getValueAt(row, 6).toString());
-            txtDiemCuoiKy.setText(tableModel.getValueAt(row, 7).toString());
+            txtDiem15p.setText(tableModel.getValueAt(row, 5).toString());
+            txtDiem1Tiet.setText(tableModel.getValueAt(row, 6).toString());
+            txtDiemGiuaKy.setText(tableModel.getValueAt(row, 7).toString());
+            txtDiemCuoiKy.setText(tableModel.getValueAt(row, 8).toString());
         }
     }
 

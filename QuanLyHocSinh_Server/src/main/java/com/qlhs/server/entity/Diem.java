@@ -62,5 +62,8 @@ public class Diem {
     public String getTenHS() { return hocSinh != null ? hocSinh.getHoTen() : null; }
 
     @Transient
+    public String getMaLop() { return hocSinh != null ? hocSinh.getMaLop() : null; }
+
+    @Transient
     public String getTenMH() { return monHoc != null ? monHoc.getTenMH() : null; }
 }
