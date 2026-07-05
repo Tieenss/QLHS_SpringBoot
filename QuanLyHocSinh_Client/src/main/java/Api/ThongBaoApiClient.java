@@ -17,7 +17,7 @@ import java.util.List;
 
 public class ThongBaoApiClient {
 
-    private static final String BASE_URL = "http://localhost:8080/api/thongbao";
+    private static final String BASE_URL = ApiConfig.BASE_URL + "/api/thongbao";
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new GsonBuilder()
             .setDateFormat("yyyy-MM-dd")

@@ -105,5 +105,5 @@ public class Hocphi {
     public void setTrangThai(String trangThai) {
         this.trangThai = trangThai;
     }
-    
+
 }
