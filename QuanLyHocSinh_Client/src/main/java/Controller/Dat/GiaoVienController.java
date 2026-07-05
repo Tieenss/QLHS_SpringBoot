@@ -1,7 +1,7 @@
 package Controller.Dat;
 
 import Api.GiaoVienApi;
-import Dao.ToHopMonDAO;
+import Api.ToHopMonApi;
 import Model.Giaovien;
 import Model.ToBoMon;
 import View.Dat.QuanLyGiaoVienPanel;
@@ -17,7 +17,7 @@ public class GiaoVienController {
 
     private final QuanLyGiaoVienPanel view;
     private final GiaoVienApi api;
-    private final ToHopMonDAO toHopDAO;
+    private final ToHopMonApi toHopDAO;
 
     private String mode = "";
 
@@ -25,7 +25,7 @@ public class GiaoVienController {
 
         this.view = view;
         this.api = new GiaoVienApi();
-        this.toHopDAO = new ToHopMonDAO();
+        this.toHopDAO = new ToHopMonApi();
 
         init();
     }
