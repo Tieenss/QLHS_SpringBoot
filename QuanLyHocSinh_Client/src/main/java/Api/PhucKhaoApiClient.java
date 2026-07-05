@@ -16,8 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PhucKhaoApiClient {
-
-    private static final String BASE_URL = "http://localhost:8080/api/phuckhao";
+    private static final String BASE_URL = ApiConfig.BASE_URL + "/api/phuckhao";
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new GsonBuilder()
             .setDateFormat("yyyy-MM-dd") // Giữ cấu trúc format ngày tháng đồng bộ với server

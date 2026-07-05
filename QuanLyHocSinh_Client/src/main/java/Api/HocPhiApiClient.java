@@ -15,8 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HocPhiApiClient {
-
-    private static final String BASE_URL = "http://localhost:8080/api/hocphi";
+    private static final String BASE_URL = ApiConfig.BASE_URL + "/api/hocphi";
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
 
