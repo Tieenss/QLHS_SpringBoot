@@ -109,31 +109,7 @@ public class TaiKhoanApi {
     /**
      * Lấy tài khoản theo tên đăng nhập
      */
-    public TaiKhoan getByTenDangNhap(String tenDangNhap) {
 
-        try {
-
-            String url = SERVER_URL + "/"
-                    + URLEncoder.encode(tenDangNhap, StandardCharsets.UTF_8);
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response =
-                    client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                return gson.fromJson(response.body(), TaiKhoan.class);
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return null;
-    }
 
     /**
      * Thêm tài khoản
