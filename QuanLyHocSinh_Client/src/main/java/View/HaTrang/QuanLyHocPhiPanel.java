@@ -226,11 +226,16 @@ public class QuanLyHocPhiPanel extends JPanel {
                 JLabel lblQR = new JLabel();
                 lblQR.setHorizontalAlignment(JLabel.CENTER);
                 try {
-                    ImageIcon icon = new ImageIcon("src/main/java/TienIch/thanhToanHocPhi.png");
-                    Image img = icon.getImage().getScaledInstance(250, 250, Image.SCALE_SMOOTH);
-                    lblQR.setIcon(new ImageIcon(img));
+                    java.net.URL imgUrl = QuanLyHocPhiPanel.class.getResource("/TienIch/thanhToanHocPhi.png");
+                    if (imgUrl != null) {
+                        ImageIcon icon = new ImageIcon(imgUrl);
+                        Image img = icon.getImage().getScaledInstance(250, 250, Image.SCALE_SMOOTH);
+                        lblQR.setIcon(new ImageIcon(img));
+                    } else {
+                        lblQR.setText("Không tìm thấy ảnh QR");
+                    }
                 } catch (Exception ex) {
-                    lblQR.setText("Không thể tải ảnh QR");
+                    lblQR.setText("Lỗi tải ảnh QR");
                 }
 
                 String maHsHienTai = txtMaHS.getText().isEmpty() ? Model.Auth.maNguoiDung : txtMaHS.getText();
@@ -322,7 +327,7 @@ public class QuanLyHocPhiPanel extends JPanel {
             public void focusLost(java.awt.event.FocusEvent evt) {
                 String maHS = txtMaHS.getText().trim();
                 if (!maHS.isEmpty()) {
-                    Model.HocSinh hs = new Api.HocSinhApi().getHocSinh(maHS);
+                    Model.HocSinh hs = new Api.Đai.HocSinhApi().getHocSinh(maHS);
                     if (hs != null) {
                         txtTenHSCT.setText(hs.getHoTen());
                     } else {

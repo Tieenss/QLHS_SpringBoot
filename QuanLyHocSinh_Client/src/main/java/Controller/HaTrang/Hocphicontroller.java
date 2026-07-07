@@ -1,6 +1,6 @@
 package Controller.HaTrang;
 
-import Api.HocPhiApiClient;
+import Api.HaTrang.HocPhiApiClient;
 import Model.Auth;
 import Model.Hocphi;
 import View.HaTrang.QuanLyHocPhiPanel;
