@@ -75,5 +75,5 @@ public class Phuckhao {
     public void setTrangThai(String trangThai) {
         this.trangThai = trangThai;
     }
-    
+
 }

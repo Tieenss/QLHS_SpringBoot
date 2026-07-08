@@ -15,8 +15,20 @@ public class HanhKiem {
     @Column(name = "MaHS", length = 50)
     private String maHS;
 
-    @Column(name = "MaLop", length = 50)
-    private String maLop;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MaHS", insertable = false, updatable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private HocSinh hocSinh;
+
+    @Transient
+    public String getTenHS() {
+        return hocSinh != null ? hocSinh.getHoTen() : null;
+    }
+
+    @Transient
+    public String getLopHocSinh() {
+        return hocSinh != null ? hocSinh.getMaLop() : null;
+    }
 
     @Id
     @Column(name = "HocKy")

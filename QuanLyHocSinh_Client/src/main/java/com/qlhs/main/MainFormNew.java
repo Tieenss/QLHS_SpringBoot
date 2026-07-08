@@ -14,8 +14,8 @@ import java.awt.FontMetrics;
 import Model.Auth;
 import Model.HocSinh;
 import Model.Giaovien;
-import Dao.HocSinhDAO;
-import Dao.GiaovienDAO;
+import Api.Đai.HocSinhApi;
+import Api.Đat.GiaoVienApi;
 import View.Tien.HanhKiemPanel;
 import View.LoginView;
 import Controller.Dai.LoginController;
@@ -148,14 +148,20 @@ public class MainFormNew extends JFrame {
 
         if (!maNguoiDung.isEmpty()) {
             if (Auth.isHocSinh()) {
-                HocSinh hs = new HocSinhDAO().getByMaHS(maNguoiDung);
+                HocSinh hs = new HocSinhApi().getHocSinh(maNguoiDung);
                 if (hs != null && hs.getHoTen() != null && !hs.getHoTen().trim().isEmpty()) {
                     return hs.getHoTen().trim();
                 }
             } else if (Auth.isGiaoVien()) {
-                Giaovien gv = new GiaovienDAO().getByMaGV(maNguoiDung);
-                if (gv != null && gv.getHoTen() != null && !gv.getHoTen().trim().isEmpty()) {
-                    return gv.getHoTen().trim();
+                try {
+                    Giaovien gv = new GiaoVienApi().getByMaGV(maNguoiDung);
+
+                    if (gv != null && gv.getHoTen() != null && !gv.getHoTen().trim().isEmpty()) {
+                        return gv.getHoTen().trim();
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         }
@@ -222,7 +228,7 @@ public class MainFormNew extends JFrame {
         iconMap.put("room.png", "🏫"); iconMap.put("score.png", "📊");
         iconMap.put("conduct.png", "⭐"); iconMap.put("exam.png", "📝");
         iconMap.put("fee.png", "💰"); iconMap.put("notification.png", "📢");
-        iconMap.put("review.png", "⚖️"); iconMap.put("student.png", "👤");
+        iconMap.put("review.png", "🔎"); iconMap.put("student.png", "👤");
         iconMap.put("user.png", "🔐"); iconMap.put("policy.png", "📋");
 
         String emoji = iconMap.getOrDefault(iconFileName, "•");
@@ -410,11 +416,17 @@ public class MainFormNew extends JFrame {
             LichThiPanel view = new LichThiPanel();
             new LichThiController(view); viewToShow = view;
         } else if (formCode.equals("FormHocPhi")) {
-            viewToShow = new QuanLyHocPhiPanel();
+            QuanLyHocPhiPanel view = new QuanLyHocPhiPanel();
+            new Controller.HaTrang.Hocphicontroller(view);
+            viewToShow = view;
         } else if (formCode.equals("FormThongBao")) {
-            viewToShow = new QuanlyThongbaoPanel();
+            QuanlyThongbaoPanel view = new QuanlyThongbaoPanel();
+            new Controller.HaTrang.Thongbaocontroller(view);
+            viewToShow = view;
         } else if (formCode.equals("FormPhucKhao")) {
-            viewToShow = new QuanLyPhucKhaoPanel();
+            QuanLyPhucKhaoPanel view = new QuanLyPhucKhaoPanel();
+            new Controller.HaTrang.Phuckhaocontroller(view);
+            viewToShow = view;
         } else if (formCode.equals("FormMonHoc")) {
             FrmMonHoc panel = new FrmMonHoc();
             new MonHocController(panel); viewToShow = panel;

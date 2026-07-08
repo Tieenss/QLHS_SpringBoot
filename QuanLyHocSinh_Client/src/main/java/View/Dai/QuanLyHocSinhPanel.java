@@ -142,7 +142,7 @@ public class QuanLyHocSinhPanel extends JPanel {
         gbc.gridx = 1;
   
         spNgaySinh = new JSpinner(new SpinnerDateModel());
-        spNgaySinh.setEditor(new JSpinner.DateEditor(spNgaySinh, "yyyy-MM-dd"));
+        spNgaySinh.setEditor(new JSpinner.DateEditor(spNgaySinh, "dd/MM/yyyy"));
         pnlLeft.add(spNgaySinh, gbc);
         
 
@@ -208,9 +208,7 @@ public class QuanLyHocSinhPanel extends JPanel {
         btnHuy.addActionListener(e -> huy());
 
         btnTim.addActionListener(e -> timKiem());
-        btnHienThiTatCa.addActionListener(e ->
-                controller.loadTable(tableModel)
-        );
+        btnHienThiTatCa.addActionListener(e -> hienThiTatCa());
         //thêm ngày 09/04/2026
         if (Model.Auth.isHocSinh()) {
             pnlSearch.setVisible(false);
@@ -312,11 +310,60 @@ public class QuanLyHocSinhPanel extends JPanel {
     }
 
     private void timKiem() {
-        if (txtTimKiem.getText().trim().isEmpty()) {
-            controller.loadTable(tableModel);   
-        } else {
-            controller.timKiem(txtTimKiem.getText(), tableModel); 
+
+        String keyword = txtTimKiem.getText().trim();
+
+        // Chưa nhập từ khóa
+        if (keyword.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Vui lòng nhập mã hoặc tên học sinh cần tìm!",
+                    "Thông báo",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            txtTimKiem.requestFocus();
+            return;
         }
+
+        try {
+            boolean found = controller.timKiem(keyword, tableModel);
+
+            if (!found) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Không tìm thấy học sinh!",
+                        "Thông báo",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+            }
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Không thể kết nối tới Server!",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    private void hienThiTatCa() {
+
+        // Xóa ô tìm kiếm
+        txtTimKiem.setText("");
+
+        // Bỏ chọn dòng trên bảng
+        tableHS.clearSelection();
+
+        // Xóa dữ liệu trên Form
+        clearForm();
+
+        // Khóa Form
+        setFormEnabled(false);
+
+        // Hiển thị toàn bộ dữ liệu
+        controller.loadTable(tableModel);
     }
 
     private void doDuLieuVaoForm() {
@@ -329,7 +376,7 @@ public class QuanLyHocSinhPanel extends JPanel {
             try {
                 String strDate = tableModel.getValueAt(r, 2).toString();
          
-                Date d = new SimpleDateFormat("yyyy-MM-dd").parse(strDate);
+                Date d = new SimpleDateFormat("dd/MM/yyyy").parse(strDate);
                 spNgaySinh.setValue(d);
             } catch (Exception e) {
            
@@ -371,7 +418,8 @@ public class QuanLyHocSinhPanel extends JPanel {
     private void clearForm() {
         txtMaHS.setText("");
         txtHoTen.setText("");
-        spNgaySinh.setValue(new Date()); 
+        spNgaySinh.setValue(new Date());
+        cboGioiTinh.setSelectedIndex(0);
         txtDiaChi.setText("");
         cboMaLop.setSelectedIndex(-1);
         cboMaDT.setSelectedIndex(-1);

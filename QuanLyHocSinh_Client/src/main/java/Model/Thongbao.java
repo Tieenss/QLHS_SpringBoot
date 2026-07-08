@@ -65,5 +65,5 @@ public class Thongbao {
     public void setNguoiGui(String nguoiGui) {
         this.nguoiGui = nguoiGui;
     }
-    
+
 }

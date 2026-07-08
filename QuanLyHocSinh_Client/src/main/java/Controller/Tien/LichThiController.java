@@ -1,7 +1,8 @@
 package Controller.Tien;
 
-import Api.LichThiApi;
+import Api.Tien.LichThiApi;
 import Model.LichThi;
+import Model.LopGVCN;
 import View.Tien.LichThiPanel;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -9,17 +10,18 @@ import java.util.List;
 import java.util.ArrayList;
 import javax.swing.JOptionPane;
 import TienIch.XuatExcel;
-import Model.Auth;
 import Model.MonHoc;
 import Model.PhongHoc;
-import Api.MonHocApiClient;
-import Api.PhongHocApiClient;
+import Api.Đat.LopApi;
+import Api.ThuTrang.MonHocApiClient;
+import Api.ThuTrang.PhongHocApiClient;
 
 public class LichThiController {
     
     private LichThiPanel view;
     private LichThiApi dao;
     private List<MonHoc> monHocList;
+    private List<PhongHoc> phongHocList;
     
     public LichThiController(LichThiPanel view) {
         this.view = view;
@@ -43,12 +45,21 @@ public class LichThiController {
             view.setMonHocData(tenMons);
 
             PhongHocApiClient phongApi = new PhongHocApiClient();
-            List<PhongHoc> phongs = phongApi.getAll();
+            phongHocList = phongApi.getAll();
             List<String> tenPhongs = new ArrayList<>();
-            for (PhongHoc p : phongs) {
-                tenPhongs.add(p.getMaPhong());
+            for (PhongHoc p : phongHocList) {
+                tenPhongs.add(p.getTenPhong()); // Hiển thị tên phòng thay vì mã
             }
             view.setPhongHocData(tenPhongs);
+
+
+            LopApi lopApi = new LopApi();
+            List<LopGVCN> lopList = lopApi.getAllLop();
+            List<String> maLops = new ArrayList<>();
+            for (LopGVCN l : lopList) {
+                maLops.add(l.getMaLop());
+            }
+            view.setLopData(maLops);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -66,7 +77,9 @@ public class LichThiController {
             String kyThi = view.getKyThiFilter();
             String tenMon = view.getMonFilter();
             String phong = view.getPhongFilter();
-            
+            String maLop = view.getLopFilter();
+
+
             String maMH = "";
             if (!tenMon.isEmpty() && monHocList != null) {
                 for (MonHoc m : monHocList) {
@@ -77,7 +90,7 @@ public class LichThiController {
                 }
             }
             
-            List<LichThi> list = dao.getLichThiByFilter(kyThi, maMH, phong);
+            List<LichThi> list = dao.getLichThiByFilter(kyThi, maMH, phong, maLop);
             view.setTableData(list);
             if (list.isEmpty()) view.showMessage("Không tìm thấy lịch thi phù hợp!");
         });
@@ -99,7 +112,36 @@ public class LichThiController {
             editMode[0] = false;
             view.clearForm();
             view.getTable().clearSelection();
+            
+            // Auto đề xuất Mã LT tiếp theo
+            int maxId = 0;
+            for(int i=0; i<view.getTable().getRowCount(); i++) {
+                try {
+                    int id = Integer.parseInt(view.getTable().getValueAt(i, 0).toString());
+                    if (id > maxId) maxId = id;
+                } catch(Exception ex) {}
+            }
+            view.getCboMaLT().getEditor().setItem(String.valueOf(maxId + 1));
+            
             setAddState.run();
+        });
+        
+        view.getCboMaLT().addActionListener(e -> {
+            String selected = "";
+            if (view.getCboMaLT().getSelectedItem() != null) {
+                selected = view.getCboMaLT().getSelectedItem().toString();
+            }
+            if(!selected.isEmpty()) {
+                // Tìm trong bảng xem mã này có tồn tại không
+                for(int i=0; i<view.getTable().getRowCount(); i++) {
+                    if(view.getTable().getValueAt(i, 0).toString().equals(selected)) {
+                        view.getTable().setRowSelectionInterval(i, i);
+                        // Khi setRowSelectionInterval thì tableMouseListener sẽ tự kích hoạt
+                        // và fill data + chuyển sang EditMode
+                        break;
+                    }
+                }
+            }
         });
         view.addBtnSuaListener(e -> {
             int row = view.getTable().getSelectedRow();
@@ -113,10 +155,77 @@ public class LichThiController {
         });
         view.addBtnLuuListener(e -> {
             LichThi lt = view.getLichThiInput();
-            if (lt.getMaMH().isEmpty() || lt.getNgayThi().isEmpty()) {
-                view.showMessage("Vui lòng nhập Mã môn và Ngày thi!");
+            
+            // Map TenMH -> MaMH
+            if (!lt.getMaMH().isEmpty() && monHocList != null) {
+                for (MonHoc m : monHocList) {
+                    if (m.getTenMH().equals(lt.getMaMH())) {
+                        lt.setMaMH(m.getMaMH());
+                        break;
+                    }
+                }
+            }
+            
+            // Map TenPhong -> MaPhong
+            if (!lt.getMaPhong().isEmpty() && phongHocList != null) {
+                for (PhongHoc p : phongHocList) {
+                    if (p.getTenPhong() != null && p.getTenPhong().equals(lt.getMaPhong())) {
+                        lt.setMaPhong(p.getMaPhong());
+                        break;
+                    }
+                }
+            }
+
+            if (lt.getMaMH().isEmpty() || lt.getNgayThi().isEmpty() || lt.getMaLop().isEmpty()) {
+                view.showMessage("Vui lòng nhập Mã môn và Ngày thi và Lớp!");
                 return;
             }
+            
+            // Validate Giờ Bắt Đầu < Giờ Kết Thúc
+            try {
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm");
+                java.util.Date start = sdf.parse(lt.getGioBatDau());
+                java.util.Date end = sdf.parse(lt.getGioKetThuc());
+                if (!start.before(end)) {
+                    view.showMessage("Lỗi: Giờ kết thúc phải lớn hơn giờ bắt đầu!");
+                    return;
+                }
+            } catch (Exception ex) {
+                view.showMessage("Lỗi định dạng giờ!");
+                return;
+            }
+
+            // Kiểm tra trùng lịch thi (Overlap Check)
+            List<LichThi> allExams = dao.getAllLichThi();
+            for (LichThi existing : allExams) {
+                if (existing.getMaLT() == lt.getMaLT()) continue; // Bỏ qua chính nó khi sửa
+                
+                if (existing.getNgayThi() != null && existing.getMaPhong() != null &&
+                    existing.getNgayThi().equals(lt.getNgayThi()) && 
+                    existing.getMaPhong().equals(lt.getMaPhong())) {
+                    
+                    // Logic trùng giờ: Bắt đầu mới < Kết thúc cũ VÀ Kết thúc mới > Bắt đầu cũ
+                    if (lt.getGioBatDau().compareTo(existing.getGioKetThuc()) < 0 && 
+                        lt.getGioKetThuc().compareTo(existing.getGioBatDau()) > 0) {
+                        view.showMessage(String.format("Lỗi: Trùng lịch với Mã LT %d (từ %s đến %s) cùng ngày, cùng phòng!", 
+                            existing.getMaLT(), existing.getGioBatDau(), existing.getGioKetThuc()));
+                        return;
+                    }
+                }
+
+                if (existing.getNgayThi() != null && existing.getMaLop() != null &&
+                        existing.getNgayThi().equals(lt.getNgayThi()) &&
+                        existing.getMaLop().equals(lt.getMaLop())) {
+
+                    if (lt.getGioBatDau().compareTo(existing.getGioKetThuc()) < 0 &&
+                            lt.getGioKetThuc().compareTo(existing.getGioBatDau()) > 0) {
+                        view.showMessage(String.format("Lỗi: Lớp %s đã có lịch thi khác (Mã LT %d, từ %s đến %s) cùng ngày và giờ!",
+                                lt.getMaLop(), existing.getMaLT(), existing.getGioBatDau(), existing.getGioKetThuc()));
+                        return;
+                    }
+                }
+            }
+
             if (editMode[0]) {
                 if(dao.updateLichThi(lt)) {
                     view.showMessage("Cập nhật thành công!");
@@ -184,6 +293,13 @@ public class LichThiController {
         });
     }
     private void loadAll() {
-        view.setTableData(dao.getAllLichThi());
+        List<LichThi> all = dao.getAllLichThi();
+        view.setTableData(all);
+        
+        List<Integer> listMaLT = new ArrayList<>();
+        for(LichThi lt : all) {
+            listMaLT.add(lt.getMaLT());
+        }
+        view.setMaLTData(listMaLT);
     }
 }

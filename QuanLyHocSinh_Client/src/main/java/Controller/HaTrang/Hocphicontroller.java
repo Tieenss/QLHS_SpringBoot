@@ -1,133 +1,149 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package Controller.HaTrang;
 
-import Dao.HocphiDAO;
+import Api.HaTrang.HocPhiApiClient;
 import Model.Auth;
 import Model.Hocphi;
 import View.HaTrang.QuanLyHocPhiPanel;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import javax.swing.JOptionPane;
 import java.util.List;
+import javax.swing.JOptionPane;
 
 public class Hocphicontroller {
-    private QuanLyHocPhiPanel view;
-    private HocphiDAO dao;
+    private final QuanLyHocPhiPanel view;
+    private final HocPhiApiClient dao;
+    private int selectedMaHP = 0;
 
     public Hocphicontroller(QuanLyHocPhiPanel view) {
         this.view = view;
-        this.dao = new HocphiDAO();
-        List<Hocphi> list;
-
-        System.out.println("DEBUG Controller: Khởi tạo controller...");
-
+        this.dao = new HocPhiApiClient();
         initEvents();
         loadTatCaDuLieu();
     }
 
     private void initEvents() {
         boolean[] updateMode = {false};
-        Runnable setIdleState = () -> view.setCrudButtonState(true, false, false, false, false);
-        Runnable setAddState = () -> view.setCrudButtonState(false, false, false, true, true);
-        Runnable setSelectedState = () -> view.setCrudButtonState(false, true, true, false, true);
-        Runnable setEditState = () -> view.setCrudButtonState(false, true, true, true, true);
-        setIdleState.run();
 
-        // Filter button
-        view.getBtnLoc().addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                locDuLieu();
+        // Gom trạng thái các nút (Chỉ xử lý khi không phải học sinh)
+        Runnable setFormState = () -> {
+            if (!Auth.isHocSinh()) {
+                boolean hasSelected = view.getTableHocPhi().getSelectedRow() != -1;
+                view.setCrudButtonState(!hasSelected && !updateMode[0], hasSelected && !updateMode[0], hasSelected && !updateMode[0], updateMode[0], updateMode[0]);
+                view.setInputEditable(updateMode[0]);
+                if (updateMode[0] && view.getTableHocPhi().getSelectedRow() != -1) {
+                    view.getTxtMaHS().setEditable(false); // Khóa riêng ô Mã HS khi sửa
+                }
             }
-        });
+        };
 
+        setFormState.run();
 
-        view.getBtnThem().addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+        // 1. Nút Lọc dữ liệu
+        if (view.getBtnLoc() != null) view.getBtnLoc().addActionListener(e -> locDuLieu());
+
+        // 2. Nút Thêm
+        if (view.getBtnThem() != null) {
+            view.getBtnThem().addActionListener(e -> {
                 updateMode[0] = false;
+                selectedMaHP = 0;
                 view.refreshForm();
-                view.getTableHocPhi().clearSelection();
-                setAddState.run();
-            }
-        });
+                updateMode[0] = true; // Bật mode nhập mới
+                setFormState.run();
+                updateMode[0] = false; // Trả lại trạng thái cho nút Lưu/Hủy kiểm soát
+            });
+        }
 
-        view.getBtnSua().addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedRow = view.getTableHocPhi().getSelectedRow();
-                if (selectedRow == -1) {
+        // 3. Nút Sửa
+        if (view.getBtnSua() != null) {
+            view.getBtnSua().addActionListener(e -> {
+                if (view.getTableHocPhi().getSelectedRow() == -1) {
                     JOptionPane.showMessageDialog(view, "Vui lòng chọn một dòng cần sửa!");
                     return;
                 }
                 updateMode[0] = true;
-                setEditState.run();
-            }
-        });
+                setFormState.run();
+            });
+        }
 
-        // Save button (handles both add and update)
-        view.getBtnLuu().addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+        // 4. Nút Lưu
+        if (view.getBtnLuu() != null) {
+            view.getBtnLuu().addActionListener(e -> {
                 if (xuLyLuu(updateMode[0])) {
                     updateMode[0] = false;
-                    setIdleState.run();
+                    view.getTableHocPhi().clearSelection();
+                    setFormState.run();
                 }
-            }
-        });
+            });
+        }
 
-        // Delete button with confirmation
-        view.getBtnXoa().addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+        // 5. Nút Xóa
+        if (view.getBtnXoa() != null) {
+            view.getBtnXoa().addActionListener(e -> {
                 if (xoaHocPhi()) {
                     updateMode[0] = false;
-                    setIdleState.run();
+                    view.getTableHocPhi().clearSelection();
+                    setFormState.run();
                 }
-            }
-        });
+            });
+        }
 
-        // Cancel/Reset button
-        view.getBtnHuy().addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+        // 6. Nút Hủy
+        if (view.getBtnHuy() != null) {
+            view.getBtnHuy().addActionListener(e -> {
                 view.refreshForm();
                 updateMode[0] = false;
-                setIdleState.run();
-            }
-        });
+                view.getTableHocPhi().clearSelection();
+                setFormState.run();
+            });
+        }
 
+        // 7. Sự kiện Click vào bảng
         view.getTableHocPhi().addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 int selectedRow = view.getTableHocPhi().getSelectedRow();
                 if (selectedRow >= 0) {
-                    updateMode[0] = true;
-                    setSelectedState.run();
+                    selectedMaHP = Integer.parseInt(view.getTableHocPhi().getValueAt(selectedRow, 0).toString());
+                    setFormState.run();
                 }
             }
         });
 
-        System.out.println("DEBUG Controller: Controller khởi tạo xong!");
+        // 8. TỰ ĐỘNG ĐIỀN MÃ LỚP
+        if (view.getTxtMaHS() != null) {
+            view.getTxtMaHS().addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override
+                public void focusLost(java.awt.event.FocusEvent e) {
+                    String maHS = view.getTxtMaHS().getText().trim();
+                    if (!maHS.isEmpty() && !updateMode[0] && view.getTxtMaLopCT() != null) {
+                        view.getTxtMaLopCT().setText(maHS.toUpperCase().startsWith("HS") ? "10A1" : "CHƯA XÁC ĐỊNH");
+                    }
+                }
+            });
+        }
 
-        loadTatCaDuLieu();
+        // 9. TỰ ĐỘNG TÍNH TOÁN SỐ TIỀN
+        if (view.getTxtTongTien() != null && view.getTxtMienGiam() != null) {
+            KeyAdapter tinhTienTuDong = new KeyAdapter() {
+                @Override
+                public void keyReleased(KeyEvent e) {
+                    try {
+                        long tongTien = view.getTxtTongTien().getText().trim().isEmpty() ? 0 : Long.parseLong(view.getTxtTongTien().getText().trim());
+                        long mienGiam = view.getTxtMienGiam().getText().trim().isEmpty() ? 0 : Long.parseLong(view.getTxtMienGiam().getText().trim());
+                        if (view.getTxtPhaiDong() != null) view.getTxtPhaiDong().setText(String.valueOf(tongTien - mienGiam));
+                    } catch (NumberFormatException ex) { /* Bỏ qua ký tự lỗi */ }
+                }
+            };
+            view.getTxtTongTien().addKeyListener(tinhTienTuDong);
+            view.getTxtMienGiam().addKeyListener(tinhTienTuDong);
+        }
     }
-    //Sửa ngày 09/04/2026
+
     private void loadTatCaDuLieu() {
         try {
-            List<Hocphi> listAll;
-            if (Auth.isHocSinh()) {
-                listAll = dao.getByMaHS(Auth.maNguoiDung);
-            } else {
-                listAll = dao.getAllHocPhi();
-            }
-
-            view.loadTable(listAll);
+            view.loadTable(Auth.isHocSinh() ? dao.getByMaHS(Auth.maNguoiDung) : dao.getAllHocPhi());
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -135,95 +151,81 @@ public class Hocphicontroller {
 
     private void locDuLieu() {
         try {
-            Object cboMaLopSelected = view.getCboMaLop().getSelectedItem();
             Object cboHocKySelected = view.getCboHocKy().getSelectedItem();
-            Object cboNamHocSelected = view.getCboNamHoc().getSelectedItem();
-
-            // Nếu có selection (không null) thì lấy giá trị, nếu trống thì pass empty string
-            String maLop = (cboMaLopSelected != null) ? cboMaLopSelected.toString().trim() : "";
+            String maLop = view.getTxtMaLop().getText().trim().toUpperCase();
             String hocKyStr = (cboHocKySelected != null) ? cboHocKySelected.toString().trim() : "";
-            String namHoc = (cboNamHocSelected != null) ? cboNamHocSelected.toString().trim() : "";
+            String namHoc = view.getTxtNamHoc().getText().trim();
 
-            // Nếu tất cả đều trống → load toàn bộ dữ liệu
-            // Nếu có ít nhất một giá trị → filter theo giá trị đó
-            int hocKy = hocKyStr.isEmpty() ? 0 : Integer.parseInt(hocKyStr);
-            
-            System.out.println("DEBUG: Lọc dữ liệu - Lớp: " + (maLop.isEmpty() ? "Tất cả" : maLop) + 
-                             ", Kỳ: " + (hocKy == 0 ? "Tất cả" : hocKy) + 
-                             ", Năm: " + (namHoc.isEmpty() ? "Tất cả" : namHoc));
+            if (maLop.isEmpty() && hocKyStr.isEmpty() && namHoc.isEmpty()) {
+                loadTatCaDuLieu();
+                return;
+            }
 
-            List<Hocphi> list = dao.getHocPhiByLop(maLop, hocKy, namHoc);
-            
-            System.out.println("DEBUG: Số dòng tìm được: " + list.size());
+            List<Hocphi> list = dao.getHocPhiByLop(maLop, hocKyStr.isEmpty() ? 0 : Integer.parseInt(hocKyStr), namHoc);
+
+            if (Auth.isHocSinh()) {
+                list = list.stream().filter(hp -> hp.getMaHS() != null && hp.getMaHS().equalsIgnoreCase(Auth.maNguoiDung)).toList();
+            }
 
             view.loadTable(list);
-
-            if (list.isEmpty()) {
-                JOptionPane.showMessageDialog(view, "Không tìm thấy dữ liệu cho lớp " + maLop +
-                                            ", Kỳ " + hocKy + ", Năm " + namHoc);
-            }
+            if (list.isEmpty()) JOptionPane.showMessageDialog(view, "Không tìm thấy dữ liệu học phí phù hợp!");
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(view, "Lỗi định dạng: " + ex.getMessage());
+            JOptionPane.showMessageDialog(view, "Lỗi định dạng số khi xử lý Học Kỳ!");
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(view, "Lỗi khi lọc: " + ex.getMessage());
             ex.printStackTrace();
         }
     }
 
     private boolean xuLyLuu(boolean isUpdate) {
         try {
-           
             String maHS = view.getTxtMaHS().getText().trim();
+            String maLop = view.getTxtMaLopCT().getText().trim();
             String tongTienStr = view.getTxtTongTien().getText().trim();
             String mienGiamStr = view.getTxtMienGiam().getText().trim();
-            Object hocKyObj = view.getCboHocKy().getSelectedItem();
-            Object namHocObj = view.getCboNamHoc().getSelectedItem();
+            Object hocKyObj = view.getCboHocKyCT().getSelectedItem();
             Object trangThaiObj = view.getCboTrangThai().getSelectedItem();
+
             String hocKyStr = hocKyObj == null ? "" : hocKyObj.toString().trim();
-            String namHoc = namHocObj == null ? "" : namHocObj.toString().trim();
+            String namHoc = view.getTxtNamHocCT().getText().trim();
             String trangThaiStr = trangThaiObj == null ? "" : trangThaiObj.toString().trim();
 
-            if ("(Không có dữ liệu)".equalsIgnoreCase(namHoc) || "(Lỗi tải dữ liệu)".equalsIgnoreCase(namHoc)) {
-                namHoc = "";
+            if (maHS.isEmpty() || tongTienStr.isEmpty() || hocKyStr.isEmpty() || namHoc.isEmpty() || maLop.equalsIgnoreCase("CHƯA XÁC ĐỊNH")) {
+                JOptionPane.showMessageDialog(view, "Vui lòng nhập đầy đủ thông tin hợp lệ!");
+                return false;
             }
 
-             
-            if (maHS.isEmpty() || tongTienStr.isEmpty() || hocKyStr.isEmpty() || namHoc.isEmpty()) {
-                JOptionPane.showMessageDialog(view, "Mã học sinh, Tổng tiền, Học kỳ và Năm học không được để trống!");
+            long tongTien = Long.parseLong(tongTienStr);
+            long mienGiam = mienGiamStr.isEmpty() ? 0 : Long.parseLong(mienGiamStr);
+
+            if (mienGiam > tongTien) {
+                JOptionPane.showMessageDialog(view, "Số tiền miễn giảm không được lớn hơn tổng tiền học phí!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return false;
             }
 
             Hocphi hp = new Hocphi();
+            if (isUpdate) hp.setMaHP(selectedMaHP);
             hp.setMaHS(maHS);
+            hp.setMaLop(maLop);
             hp.setHocKy(Integer.parseInt(hocKyStr));
             hp.setNamHoc(namHoc);
-            
-            long tongTien = Long.parseLong(tongTienStr);
-            long mienGiam = mienGiamStr.isEmpty() ? 0 : Long.parseLong(mienGiamStr);
-            long phaiDong = tongTien - mienGiam;
-
             hp.setTongTien(tongTien);
             hp.setMienGiam(mienGiam);
-            hp.setPhaiDong(phaiDong);
+            hp.setPhaiDong(tongTien - mienGiam);
             hp.setTrangThai(trangThaiStr.isEmpty() ? "Chưa đóng" : trangThaiStr);
 
-            
             if (dao.saveHocPhi(hp)) {
-                String thongBao = isUpdate ? "Cập nhật học phí thành công!" : "Thêm mới học phí thành công!";
-                JOptionPane.showMessageDialog(view, thongBao);
-                locDuLieu();
-                view.refreshForm(); 
+                JOptionPane.showMessageDialog(view, isUpdate ? "Cập nhật học phí thành công!" : "Thêm mới học phí thành công!");
+                loadTatCaDuLieu();
+                view.refreshForm();
                 return true;
-            } else {
-                JOptionPane.showMessageDialog(view, "Lưu thất bại! Kiểm tra lại mã HS hoặc kết nối DB.");
-                return false;
             }
-
+            JOptionPane.showMessageDialog(view, "Lưu thất bại! Kiểm tra kết nối API/DB.");
+            return false;
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(view, "Tiền phải nhập định dạng số!");
+            JOptionPane.showMessageDialog(view, "Số tiền học phí hoặc miễn giảm phải nhập định dạng số!");
             return false;
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(view, "Lỗi: " + ex.getMessage());
+            JOptionPane.showMessageDialog(view, "Lỗi hệ thống: " + ex.getMessage());
             return false;
         }
     }
@@ -235,19 +237,14 @@ public class Hocphicontroller {
             return false;
         }
 
-        int xacNhan = JOptionPane.showConfirmDialog(view, "Bạn có chắc chắn muốn xóa học phí này?", "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
-        if (xacNhan == JOptionPane.YES_OPTION) {
-        
-            int maHP = (int) view.getTableHocPhi().getValueAt(selectedRow, 0);
-            if (dao.deleteHocPhi(maHP)) {
+        if (JOptionPane.showConfirmDialog(view, "Bạn có chắc chắn muốn xóa học phí này?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            if (dao.deleteHocPhi((int) view.getTableHocPhi().getValueAt(selectedRow, 0))) {
                 JOptionPane.showMessageDialog(view, "Xóa thành công!");
-                locDuLieu();
+                loadTatCaDuLieu();
                 view.refreshForm();
                 return true;
-            } else {
-                JOptionPane.showMessageDialog(view, "Xóa thất bại!");
-                return false;
             }
+            JOptionPane.showMessageDialog(view, "Xóa thất bại!");
         }
         return false;
     }

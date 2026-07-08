@@ -7,6 +7,8 @@ public class Diem {
     private String maHS;
     @SerializedName(value = "tenHS", alternate = {"TenHS", "TENHS", "tenhs"})
     private String tenHS;
+    @SerializedName(value = "maLop", alternate = {"MaLop", "MALOP", "malop"})
+    private String maLop;
     @SerializedName(value = "maMH", alternate = {"MaMH", "MAMH", "mamh"})
     private String maMH;
     @SerializedName(value = "tenMH", alternate = {"TenMH", "TENMH", "tenmh"})
@@ -40,6 +42,9 @@ public class Diem {
 
     public String getTenHS() { return tenHS; }
     public void setTenHS(String tenHS) { this.tenHS = tenHS; }
+
+    public String getMaLop() { return maLop; }
+    public void setMaLop(String maLop) { this.maLop = maLop; }
 
     public String getMaMH() { return maMH; }
     public void setMaMH(String maMH) { this.maMH = maMH; }
